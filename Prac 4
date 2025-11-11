@@ -1,0 +1,221 @@
+from tensorflow import keras
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+import tensorflow as tf
+import pandas as pd
+import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
+
+
+
+
+
+df = pd.read_csv("C:/Users/pc/Desktop/DL/GOOG.csv")
+
+
+
+
+df.head()
+
+
+
+# Extract "Date" and "Close" feature colums from the dataframe.
+df = df[['Date', 'Close']]
+
+
+
+# Concise summary of a DataFrame
+df.info()
+
+
+
+df['Date'].min(), df['Date'].max()
+('2004-08-19', '2020-12-24')
+
+
+
+train = df.loc[df['Date'] <= '2017-12-24']
+test = df.loc[df['Date'] > '2017-12-24']
+
+
+
+train.shape, test.shape
+
+
+
+
+scaler = StandardScaler()
+scaler.fit(np.array(train['Close']).reshape(-1, 1))
+
+
+
+train.loc[:, 'Close'] = scaler.transform(np.array(train['Close']).reshape(-1, 1))
+test.loc[:, 'Close'] = scaler.transform(np.array(test['Close']).reshape(-1, 1))
+
+
+
+plt.plot(train['Close'], label = 'scaled')
+plt.legend()
+plt.show()
+
+
+
+
+TIME_STEPS = 30
+
+
+
+
+def create_sequences(X, y, time_steps=TIME_STEPS):
+ X_out, y_out = [], []
+ for i in range(len(X) - time_steps):
+ X_out.append(X.iloc[i:(i + time_steps)].values)
+ y_out.append(y.iloc[i + time_steps])
+ return np.array(X_out), np.array(y_out)
+
+
+
+
+X_train, y_train = create_sequences(train[['Close']], train['Close'])
+X_test, y_test = create_sequences(test[['Close']], test['Close'])
+
+
+
+
+print("Training input shape:", X_train.shape)
+print("Testing input shape:", X_test.shape)
+
+
+
+
+print(X_train[3331])
+
+
+
+import numpy as np
+
+
+
+
+data = np.array([
+ [2.72669684], [2.71313015], [2.7032639], [2.7043271], [2.68268026], [2.73197026],
+ [2.67494041], [2.67192083], [2.74043328], [2.74668476], [2.76646036], [2.82429825],
+ [2.79537956], [2.68586986], [2.68480666], [2.6370053], [2.58814073], [2.61565644],
+ [2.67192083], [2.7252936], [2.75132068], [2.76854419], [2.76590747], [2.76646036],
+ [2.80277938], [2.86674105], [2.92181505], [2.89434217], [2.86997322], [2.86435976]
+])
+
+
+
+print(data)
+
+
+
+
+# set seed to regenerate same sequence of random numbers.
+np.random.seed(21)
+tf.random.set_seed(21)
+model = Sequential()
+model.add(LSTM(128, activation = 'tanh', input_shape=(X_train.shape[1], X_train.shape[2])))
+model.add(Dropout(rate=0.2))
+model.add(RepeatVector(X_train.shape[1]))
+model.add(LSTM(128, activation = 'tanh', return_sequences=True))
+model.add(Dropout(rate=0.2))
+model.add(TimeDistributed(Dense(X_train.shape[2])))
+model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss="mse")
+model.summary()
+
+
+
+
+history = model.fit(X_train,
+y_train,
+epochs=100,
+batch_size=32,
+validation_split=0.1,
+callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=5,
+mode='min')],
+shuffle=False)
+plt.plot(history.history['loss'], label='Training loss')
+plt.plot(history.history['val_loss'], label='Validation loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend();
+
+
+
+
+
+# Mean Absolute Error loss
+X_train_pred = model.predict(X_train)
+
+
+
+train_mae_loss = np.mean(np.abs(X_train_pred - X_train), axis=1)
+
+
+
+plt.hist(train_mae_loss, bins=50)
+plt.xlabel('Train MAE loss')
+plt.ylabel('Number of Samples');
+
+
+
+
+# Set reconstruction error threshold
+threshold = np.max(train_mae_loss)
+print('Reconstruction error threshold:',threshold)
+
+
+
+
+
+X_test_pred = model.predict(X_test, verbose=1)
+test_mae_loss = np.mean(np.abs(X_test_pred-X_test), axis=1)
+plt.hist(test_mae_loss, bins=50)
+plt.xlabel('Test MAE loss')
+plt.ylabel('Number of samples')
+
+
+
+
+
+anomaly_df = pd.DataFrame(test[TIME_STEPS:])
+anomaly_df['loss'] = test_mae_loss
+anomaly_df['threshold'] = threshold
+anomaly_df['anomaly'] = anomaly_df['loss'] > anomaly_df['threshold']
+anomalies = anomaly_df.loc[anomaly_df['anomaly'] == True]
+anomalies.head()
+
+
+
+
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+# --- Safety: make independent copies to avoid SettingWithCopyWarning ---
+anomaly_df = anomaly_df.copy()
+anomalies = anomalies.copy()
+# --- Ensure Date is datetime (use .loc to avoid the warning) ---
+anomaly_df.loc[:, 'Date'] = pd.to_datetime(anomaly_df['Date'])
+anomalies.loc[:, 'Date'] = pd.to_datetime(anomalies['Date'])
+# --- Drop rows where Close is NaN (inverse_transform fails on NaN) ---
+anomaly_df = anomaly_df.dropna(subset=['Close']).reset_index(drop=True)
+anomalies = anomalies.dropna(subset=['Close']).reset_index(drop=True)
+# --- IMPORTANT: scaler must have been fitted earlier (e.g. on train[['Close']]) ---
+# e.g. scaler.fit(train[['Close']])
+# If scaler is not fitted you'll get a "not fitted" error.
+# --- Use 2-D inputs for inverse_transform and flatten results for plotting ---
+y_all = scaler.inverse_transform(anomaly_df[['Close']]).ravel() # note double brackets -> DataFrame
+(2D)
+y_anom = scaler.inverse_transform(anomalies[['Close']]).ravel()
+# --- Plot ---
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=anomaly_df['Date'], y=y_all, mode='lines', name='Close price'))
+fig.add_trace(go.Scatter(x=anomalies['Date'], y=y_anom, mode='markers', name='Anomaly',
+ marker=dict(size=8, symbol='x')))
+fig.update_layout(title='Detected anomalies', xaxis_title='Date', yaxis_title='Close Price',
+showlegend=True, template='plotly_white')
+fig.show()
