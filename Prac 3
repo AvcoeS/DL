@@ -1,0 +1,133 @@
+import tensorflow as tf
+from tensorflow.keras import datasets, layers, models
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+
+(x_train, y_train), (x_test,y_test) = datasets.cifar10.load_data()
+
+
+x_train.shape
+
+
+x_test.shape
+
+
+y_train.shape
+
+
+y_test.shape
+
+
+y_train = y_train.reshape(-1,) #2D array can be reshaped into 1D array using reshape(-1)
+y_train[:5]
+
+
+
+y_train[:5]
+
+
+y_test = y_test.reshape(-1,)
+
+
+y_train[:5]
+
+
+classes = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+
+
+
+def plot_sample(x, y, index):
+ plt.figure(figsize=(20, 2))
+ plt.imshow(x[index])
+ plt.xlabel(classes[y[index]])
+# Example usage
+plot_sample(x_train, y_train, 0)
+# Normalize the data
+x_train = x_train / 255.0
+x_test = x_test / 255.0
+# Display one normalized image array
+x_train[0]
+
+
+
+
+from tensorflow.keras import models, layers
+cnnmodel = models.Sequential([
+ layers.Input(shape=(32, 32, 3)),
+ layers.Conv2D(32, (3,3), activation='relu'),
+ layers.MaxPooling2D((2,2)),
+ layers.Conv2D(64, (3,3), activation='relu'),
+ layers.MaxPooling2D((2,2)),
+ layers.Flatten(),
+ layers.Dense(128, activation='relu'),
+ layers.Dense(10, activation='softmax')
+])
+cnnmodel.compile(optimizer='adam',
+ loss='sparse_categorical_crossentropy',
+ metrics=['accuracy'])
+
+
+
+
+
+# Train model
+cnnmodel.fit(x_train, y_train, epochs=10, validation_data=(x_test, y_test))
+# Evaluate model
+cnnmodel.evaluate(x_test, y_test)
+
+
+
+
+#compile model using optimizer
+annmodel.compile(optimizer='SGD',
+loss='sparse_categorical_crossentropy',
+metrics=['accuracy'])
+annmodel.fit(x_train, y_train, epochs=5)
+
+
+
+
+# Train your CNN model
+history = cnnmodel.fit(
+ x_train, y_train,
+ epochs=10,
+ validation_data=(x_test, y_test)
+)
+
+
+
+
+
+import matplotlib.pyplot as plt
+
+
+
+plt.plot(history.history['accuracy'], label='Training Accuracy', color='red')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy', color='green')
+plt.legend()
+plt.title('Model Accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.show()
+
+
+
+
+
+y_pred = cnnmodel.predict(x_test)
+y_pred[:5]
+
+
+import numpy as np
+
+
+
+y_classes = [np.argmax(element) for element in y_pred]
+print(y_classes[:5])
+print(y_test[:5])
+plot_sample(x_test, y_test, 3)
+cnnmodel.save('cnnmodel.h5')
+predicted_label = classes[y_classes[3]]
+print(predicted_label)
