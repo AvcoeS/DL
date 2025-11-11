@@ -1,0 +1,80 @@
+import torch
+
+
+t1=torch.tensor([1,2,3,4])
+t2=torch.tensor([[1,2,3,4],[5,6,7,8],[9,10,11,12]])
+
+
+print("Tensor t1:\n",t1)
+print("\nTensor t2:\n",t2)
+
+
+print("\nRank of t1:",len(t1.shape))
+print("Rank of t2:",len(t2.shape))
+
+
+import torch
+import numpy as np
+
+
+data1 = [1,2,3,4,5,6]
+data2 = np.array([1.5,3.4,6.8,9.3,7.0,2.8])
+
+
+t1 = torch.tensor(data1)
+t2 = torch.Tensor(data1)
+t3 = torch.as_tensor(data2)
+t4 = torch.from_numpy(data2)
+
+
+
+print("Tensor: ",t1,"Data type:",t1.dtype,"\n")
+print("Tensor: ",t2,"Data type:",t2.dtype,"\n")
+print("Tensor: ",t3,"Data type:",t3.dtype,"\n")
+print("Tensor: ",t4,"Data type:",t4.dtype,"\n")
+
+
+
+import torch
+
+
+t = torch.tensor([[1,2,3,4],[5,6,7,8],[9,10,11,12]])
+
+
+print("Reshaping")
+print(t.reshape(6,2))
+print("\nResizing")
+print(t.resize(2,6))
+print("\nTrnsposing")
+print(t.transpose(1,0))
+
+
+
+import torch
+
+
+t1 = torch.tensor([1,2,3,4])
+t2 = torch.tensor([5,6,7,8])
+print("tensor2 + tensor1")
+print(torch.add(t2,t1))
+print("\ntensor2 - tensor1")
+print(torch.sub(t2,t1))
+print("\ntensor2 * tensor1")
+print(torch.mul(t2,t1))
+print("\ntensor2 / tensor1")
+print(torch.div(t2,t1))
+
+
+import torch
+
+
+
+t1 = torch.tensor(1.0, requires_grad=True)
+t2 = torch.tensor(2.0, requires_grad=True)
+
+
+
+z= 100*t1*t2
+z.backward()
+print("dz/dt1: ",t1.grad.data)
+print("dz/dt2: ",t2.grad.data)
